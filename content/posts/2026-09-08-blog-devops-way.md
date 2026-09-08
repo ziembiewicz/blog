@@ -1,27 +1,29 @@
 ---
-title: "From Save to Published: The Pipeline Behind a Static Blog"
+title: "Blog in a DevOps pipelines way"
 date: 2026-09-08T13:20:04+02:00
-draft: true
+draft: false
 categories: ["DevOps"]
 tags: ["hugo", "github-actions", "github-pages", "ci-cd", "git"]
-cover: "/img/posts/from-save-to-published.jpg"
+cover: "/img/posts/2026-09-08-blog-devops-way.jpg"
 coverAlt: "grayscale photography of metal pipes"
 coverCredit: "Samuel Sianipar"
 coverCreditUrl: "https://unsplash.com/@samthewam24?utm_source=blog-devops&utm_medium=referral"
-description: "Hosting a blog on GitHub Pages is a solved problem. The interesting part is everything between pressing Ctrl+S and the page being live — two feedback loops, one trust boundary, and a handful of decisions that look trivial until they bite."
+description: "You know that as a DevOps engineer, you can’t just set up WordPress, install a bunch of plugins, and hope that after a month, no new CVEs will take down your blog on that platform, right? Well, here’s how to do it the hard way :)"
 ---
 
 Setting up a blog is not an engineering achievement. Hugo renders Markdown, GitHub hosts the
-result, and you are done in an afternoon.
+result, and you *are** done in an afternoon.
 
 What makes it worth writing about is that the path from *a character typed in an editor* to
 *bytes served from a CDN* contains, in miniature, nearly everything a real deployment pipeline
 contains: a fast inner loop, a slow outer loop, a trust boundary where secrets must not cross,
-a build that has to be reproducible on a machine you have never seen, and a set of permissions
-that should be exactly as wide as the job needs and no wider.
+a build that has to be reproducible on a machine you have never seen, a set of permissions that
+should be exactly as wide as the job needs and no wider, and — at the very end — DNS and TLS,
+where the ordering of two clicks is a security control rather than a preference.
 
-This post walks that path end to end and explains the machinery at each step — not just which
-commands to run, but what is actually happening underneath.
+This post walks that path end to end and explains the machinery at each step: not just which
+commands to run, but what is happening underneath and why it fails the way it does. Everything
+here is from an actual first deployment, including the parts that went wrong.
 
 ## Installing Hugo locally
 
@@ -170,22 +172,55 @@ one script and buys a build that depends on nothing but the repository and a Hug
 ## Committing and pushing
 
 ```bash
-git init
+git init && git branch -M main
 git add .
 git commit -m "init: hugo blog + phosphor theme"
-git branch -M main
-git remote add origin git@github.com:USER/REPO.git
+gh repo create blog --public --source=. --remote=origin --push
+```
+
+The repository name determines the default URL. `USER.github.io` publishes at the root; any
+other name, say `blog`, publishes under `https://USER.github.io/blog/`. That distinction matters
+more than it looks — every internal link in the built site depends on it, which is exactly why
+the workflow does not hardcode it.
+
+### Two authentication traps
+
+This is where a first push tends to fail, and both failure modes are worth knowing because the
+error messages point away from the actual cause.
+
+**The token needs the `workflow` scope.** The repository contains
+`.github/workflows/deploy.yml`, and GitHub refuses to let an OAuth token create or update
+workflow files unless it carries that scope. A default `gh` login does not include it. Every
+other file pushes fine and the one file that makes the pipeline exist is rejected:
+
+```bash
+gh auth refresh -h github.com -s workflow
+```
+
+**The protocol setting is per-host.** `gh config set git_protocol https` sets a global default
+that a host-specific entry silently overrides. If `gh auth status` says *Git operations
+protocol: ssh* while your SSH key belongs to a different GitHub account than the one `gh` is
+authenticated as, the repository gets created under the right account and the push is then
+rejected as the wrong one:
+
+```console
+$ gh repo create blog --public --source=. --remote=origin --push
+https://github.com/USER/blog
+ERROR: Permission to USER/blog.git denied to OTHER-ACCOUNT.
+```
+
+The repository exists at that point; only the push failed. Fix the host-level setting and the
+remote, then push:
+
+```bash
+gh config set -h github.com git_protocol https
+git remote set-url origin https://github.com/USER/blog.git
 git push -u origin main
 ```
 
-The repository name determines the URL. `USER.github.io` publishes at the root; any other name,
-say `blog`, publishes under `https://USER.github.io/blog/`. That distinction matters more than
-it looks — every internal link in the built site depends on it, which is exactly why the
-workflow does not hardcode it.
-
-Then, once in the repository settings: **Settings → Pages → Build and deployment → Source:
-GitHub Actions**. Without this, GitHub uses its own legacy Jekyll pipeline and quietly ignores
-the workflow you wrote.
+The general lesson is worth more than the specific fix: **an identity mismatch surfaces at the
+step furthest from its cause.** Check `gh auth status` and `ssh -T git@github.com` and confirm
+they name the same account before you debug anything else.
 
 ## The outer loop: GitHub Actions
 
@@ -248,7 +283,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      HUGO_VERSION: 0.139.0
+      HUGO_VERSION: 0.165.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -342,6 +377,173 @@ The `environment:` block registers the deployment in the repository's Environmen
 clickable URL, and is where you would attach a required-reviewer approval gate if you ever
 wanted a human in the loop.
 
+## Turning it on: Pages, DNS and the certificate
+
+The pipeline exists now, but nothing serves it yet. This last stretch is where most of the
+waiting lives, and where the ordering genuinely matters.
+
+### Enable Pages before the first push, or expect a red run
+
+`actions/configure-pages` asks the Pages API for the site's base URL. If Pages has never been
+enabled on the repository, there is no site to ask about and the step fails:
+
+```console
+X Get Pages site failed. Please verify that the repository has Pages enabled and configured
+  to build using GitHub Actions.
+  Error: Not Found
+```
+
+The push already triggered a run, so the first thing you see in a fresh repository is a failure
+that has nothing to do with your code. Either enable Pages before pushing, or enable it and
+re-run. The UI path is **Settings → Pages → Build and deployment → Source: GitHub Actions**; the
+API does the same thing without leaving the terminal:
+
+```bash
+gh api -X POST repos/USER/blog/pages -f build_type=workflow
+```
+
+`build_type=workflow` is the important part. Without it Pages falls back to its legacy
+branch-based Jekyll pipeline and quietly ignores the workflow you just wrote.
+
+### Claim the domain in GitHub *before* touching DNS
+
+```bash
+gh api -X PUT repos/USER/blog/pages -f cname=blog.example.com
+```
+
+This ordering is a security control, not a preference. GitHub's own documentation is blunt about
+it: pointing DNS at GitHub *before* the domain is registered to your repository leaves a window
+in which somebody else can claim that hostname on Pages and serve their content from your
+subdomain. Claim first, then point.
+
+### The DNS record
+
+At the registrar, in the zone for your domain:
+
+```
+# subdomain — one record
+Type:   CNAME
+Name:   blog
+Target: USER.github.io.
+
+# apex — four A records instead
+@  A  185.199.108.153
+@  A  185.199.109.153
+@  A  185.199.110.153
+@  A  185.199.111.153
+```
+
+Three things reliably go wrong here:
+
+- **The target is the account, not the repository.** `USER.github.io.`, never
+  `USER.github.io/blog`. The repository is resolved by GitHub from the incoming `Host` header.
+- **The trailing dot.** In most zone editors an unqualified target is treated as relative and
+  the zone origin gets appended, turning `USER.github.io` into
+  `USER.github.io.example.com`. Some panels add the dot for you; some do not. Check what the
+  zone actually contains after saving.
+- **Saving is not applying.** Several providers — OVH among them — stage zone edits and apply
+  them in a separate step. It is entirely possible to fill the form, close the tab, and have
+  changed nothing.
+
+Verify against the authoritative nameserver rather than your resolver, which skips propagation
+delay and cache entirely:
+
+```bash
+# who is authoritative for the zone
+nslookup -type=NS example.com 8.8.8.8
+
+# ask one of them directly
+nslookup -type=CNAME blog.example.com ns.provider.example
+```
+
+If the authoritative server returns `Non-existent domain`, the record is not there. That is a
+different problem from "not propagated yet", and waiting will not fix it.
+
+### The certificate, and the wait
+
+Once DNS resolves, GitHub verifies the domain and queues a certificate request to Let's Encrypt
+on your behalf. You cannot supply your own certificate — Pages manages TLS termination itself
+and there is no bring-your-own-certificate option.
+
+Provisioning is not instant. On this site it took **five and a half minutes** from the DNS
+record going live to HTTPS answering; GitHub's documentation allows up to 24 hours. Rather than
+refreshing the settings page, poll for it:
+
+```bash
+until [ "$(curl -s -o /dev/null -m 15 -w '%{http_code}' https://blog.example.com/)" = "200" ]; do
+  sleep 30
+done
+```
+
+You can watch the state directly, too:
+
+```console
+$ gh api repos/USER/blog/pages --jq '.https_certificate.state'
+approved
+```
+
+### The `.dev` trap: the site is live and the browser still refuses
+
+This one deserves its own warning, because every diagnostic disagrees with the browser.
+
+`.dev` is on the HSTS preload list compiled into Chrome, Firefox, Edge and Safari. The registry
+states it plainly:
+
+> The .dev top-level domain is included on the HSTS preload list, making HTTPS required on all
+> connections to .dev websites and pages without needing individual HSTS registration or
+> configuration.
+
+"Required" is literal. Browsers refuse plain HTTP to any `.dev` hostname outright — not a
+redirect, not a warning, a hard failure before the request leaves the machine, and nothing the
+site operator can opt out of. `.app` carries the same policy.
+
+So in the window between DNS going live and the certificate being issued:
+
+```console
+$ curl -s -o /dev/null -w '%{http_code}' http://blog.example.com/
+200
+```
+
+…while the browser shows a connection error. `curl` is not bound by preload lists, so it happily
+speaks HTTP and reports a perfectly healthy site. Nothing is broken; the certificate simply is
+not there yet. If your domain is `.dev` or `.app`, **there is no usable window before
+the certificate lands** — plan for it rather than debugging it.
+
+### Enforce HTTPS, then rebuild — the step people skip
+
+```bash
+gh api -X PUT repos/USER/blog/pages -F https_enforced=true
+```
+
+That flips the redirect on. It does **not** fix your generated content, and this is the part that
+gets missed.
+
+While HTTPS was not yet enforced, `configure-pages` reported the site's base URL as
+`http://blog.example.com/`, and the build faithfully used it:
+
+```console
+Run hugo --gc --minify --baseURL "http://blog.example.com/"
+```
+
+Every absolute URL Hugo generated — the RSS feed, the sitemap, canonical tags — is baked with
+`http://`. Relative links inside pages are unaffected, which is exactly why this survives a
+casual look at the site. Feed readers and crawlers see the `http://` URLs.
+
+So after enabling enforcement, trigger a rebuild:
+
+```bash
+gh workflow run deploy.yml
+```
+
+This is the concrete payoff of the `workflow_dispatch` trigger from earlier. Nothing in the
+repository changed — the *environment* changed — and without a manual trigger the only way to
+republish would be an empty commit. Confirm it took:
+
+```console
+$ curl -s https://blog.example.com/index.xml | grep -o '<link>[^<]*</link>' | head -1
+<link>https://blog.example.com/</link>
+```
+
 ## What the two loops cost
 
 | | Inner loop | Outer loop |
@@ -368,13 +570,33 @@ question *did I remember to do all the steps?*
   locally, which behaves exactly like CI, rather than with `hugo server -D`, which does not.
 - **Workflow does not run at all.** Pages source is still set to the legacy branch-based
   deployment instead of GitHub Actions.
+- **First run in a new repository fails on `configure-pages`.** Pages was never enabled. Enable
+  it, then re-run — the commit is fine.
+- **Push rejected for the workflow file only.** The token lacks the `workflow` scope.
+- **Push rejected as a different account than the one that owns the repository.** `gh` and your
+  SSH key are authenticated as different users. Compare `gh auth status` with
+  `ssh -T git@github.com`.
+- **`curl` says 200, the browser refuses to connect.** A `.dev` or `.app` domain before
+  the certificate has been issued. Wait for provisioning; there is nothing to fix.
+- **DNS "not propagated" for a long time.** Ask the authoritative nameserver directly. If it
+  also returns `Non-existent domain`, the record was never applied — many panels stage zone
+  edits behind a separate confirm step.
+- **RSS and sitemap contain `http://` links on an HTTPS site.** The site was built before
+  Enforce HTTPS was on. Re-run the workflow.
 
 ## Closing
 
 None of the individual pieces here are difficult. Pinning a version, scoping a token,
 serialising deploys, deciding that a link check reports rather than blocks, keeping an API call
-out of the build path — each is a small decision, and any one of them could be skipped without
-immediate consequence.
+out of the build path, claiming a domain before pointing DNS at it — each is a small decision,
+and any one of them could be skipped without immediate consequence.
+
+What is difficult is diagnosis, and that is where most of the time actually went. Nearly every
+failure in this build announced itself somewhere other than where it originated: a push rejected
+for the wrong account, a first run failing on a step unrelated to the commit that triggered it,
+a browser refusing a site that `curl` reports as perfectly healthy, an RSS feed quietly carrying
+`http://` links on an HTTPS site. None of those error messages point at their cause. Knowing the
+mechanism underneath is what turns each of them from an afternoon into a minute.
 
 The point is that they compound. Taken together they produce a system where publishing is a
 `git push`, where the deployed site is a deterministic function of the repository, and where
