@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Locale }}" data-theme="dark">
+<head>
+{{ partial "head.html" . }}
+</head>
+<body>
+<div class="frame">
+  {{ partial "topbar.html" . }}
+  <div class="cols">
+    <aside class="col col-left panel">{{ partial "sidebar.html" . }}</aside>
+    <main class="col col-main panel" id="main">
+      {{ block "main" . }}{{ end }}
+      <div class="spacer"></div>
+      {{ partial "footer.html" . }}
+    </main>
+    <aside class="col col-right">{{ partial "rightcol.html" . }}</aside>
+  </div>
+</div>
+<div class="scanlines" aria-hidden="true"></div>
+{{ $js := resources.Get "js/main.js" | minify | fingerprint }}
+<script src="{{ $js.RelPermalink }}" defer></script>
+</body>
+</html>

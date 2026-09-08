@@ -1,0 +1,16 @@
+{{ define "main" }}
+{{ $posts := where .Site.RegularPages "Section" "posts" }}
+<div class="main-head"><h1 class="glow">ARCHIVE</h1><span class="rows">{{ len $posts }} ITEMS</span></div>
+<div class="archive">
+  {{ range $posts.GroupByDate "2006" }}
+  <section class="archive-year">
+    <h2>{{ .Key }}</h2>
+    <ul>
+      {{ range .Pages }}
+      <li><time>{{ .Date.Format "2006-01-02" }}</time><a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ with .Params.categories }}<span class="archive-cat">[ {{ index . 0 | upper }} ]</span>{{ end }}</li>
+      {{ end }}
+    </ul>
+  </section>
+  {{ end }}
+</div>
+{{ end }}

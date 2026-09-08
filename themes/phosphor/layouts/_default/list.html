@@ -1,0 +1,8 @@
+{{ define "main" }}
+{{ $pager := .Paginate .Pages }}
+<div class="main-head"><h1 class="glow">{{ .Title | upper }}</h1>{{ partial "rows.html" (dict "pager" $pager "site" .Site) }}</div>
+<div class="cards">
+  {{ range $pager.Pages }}{{ partial "post-card.html" . }}{{ end }}
+</div>
+{{ partial "pagination.html" $pager }}
+{{ end }}

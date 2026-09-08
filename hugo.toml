@@ -1,0 +1,78 @@
+baseURL = "https://blog.ziembiewicz.dev/"
+locale = "en-US"
+defaultContentLanguage = "en"
+title = "blog@devops"
+theme = "phosphor"
+enableRobotsTXT = true
+summaryLength = 40
+
+[pagination]
+  pagerSize = 10
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+
+[taxonomies]
+  category = "categories"
+  tag = "tags"
+
+[markup.highlight]
+  noClasses = false
+  lineNos = false
+
+[params]
+  prompt = "blog@devops:~$ >"
+  author = "Tomasz Ziembiewicz"
+  tagline = "DevOps Flying in the Clouds"
+  avatar = "/img/avatar.png"
+  footerLine = "© {year} Tomasz Ziembiewicz · content CC BY 4.0"
+  stack = "built with Hugo · GitHub Actions · GitHub Pages"
+  totalRowsLabel = "ROW {from} TO {to} OF {total}"
+  clientDetected = true
+  ipEndpoint = "https://api.ipify.org?format=json"
+  recentCount = 4
+  trendingCount = 10
+  unsplashApp = "blog-devops"   # must match your registered Unsplash app name (utm_source)
+
+  [params.social]
+    github = "https://github.com/ziembiewicz"
+    x = ""
+    facebook = ""
+    email = "mailto:webmaster@ziembiewicz.dev"
+
+[menu]
+  [[menu.main]]
+    identifier = "home"
+    name = "Home"
+    url = "/"
+    weight = 1
+    [menu.main.params]
+      icon = "~"
+  [[menu.main]]
+    identifier = "categories"
+    name = "Categories"
+    url = "/categories/"
+    weight = 2
+    [menu.main.params]
+      icon = "/"
+  [[menu.main]]
+    identifier = "tags"
+    name = "Tags"
+    url = "/tags/"
+    weight = 3
+    [menu.main.params]
+      icon = "#"
+  [[menu.main]]
+    identifier = "archive"
+    name = "Archive"
+    url = "/archive/"
+    weight = 4
+    [menu.main.params]
+      icon = "≡"
+  [[menu.main]]
+    identifier = "about"
+    name = "About"
+    url = "/about/"
+    weight = 5
+    [menu.main.params]
+      icon = "@"

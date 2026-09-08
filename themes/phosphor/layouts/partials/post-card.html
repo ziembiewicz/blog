@@ -1,0 +1,18 @@
+<article class="card">
+  <a class="card-cover" href="{{ .RelPermalink }}">
+    {{ with .Params.cover }}<img src="{{ . | relURL }}" alt="{{ $.Params.coverAlt }}"{{ with $.Params.coverCredit }} title="Photo by {{ . }} on Unsplash"{{ end }} loading="lazy">{{ else }}<span class="cover-ph">cover<br>1600×900</span>{{ end }}
+  </a>
+  <div class="card-body">
+    <div class="meta">
+      <span>[ {{ .Date.Format "2006-01-02" }} ]</span>
+      <span class="meta-cat">{{ with .Params.categories }}<a href="{{ "/categories/" | relURL }}{{ index . 0 | urlize }}/">[ {{ index . 0 | upper }} ]</a>{{ end }}</span>
+      <span class="meta-right">[ {{ .ReadingTime }} min ]</span>
+    </div>
+    <h2 class="card-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+    <p class="card-excerpt">{{ with .Description }}{{ . }}{{ else }}{{ .Summary | plainify }}{{ end }}</p>
+    <div class="card-foot">
+      {{ range .Params.tags }}<a class="tag tag-accent" href="{{ "/tags/" | relURL }}{{ . | urlize }}/">#{{ . }}</a>{{ end }}
+      <a class="read-more" href="{{ .RelPermalink }}">read →</a>
+    </div>
+  </div>
+</article>

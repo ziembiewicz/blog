@@ -1,0 +1,21 @@
+{{ define "main" }}
+<article class="post">
+  <div class="meta">
+    <span>[ {{ .Date.Format "2006-01-02" }} ]</span>
+    <span class="meta-cat">{{ with .Params.categories }}<a href="{{ "/categories/" | relURL }}{{ index . 0 | urlize }}/">[ {{ index . 0 | upper }} ]</a>{{ end }}</span>
+    <span class="meta-right">[ {{ .ReadingTime }} min ]</span>
+  </div>
+  <h1 class="post-title">{{ .Title }}</h1>
+  {{ with .Params.cover }}<img class="post-cover" src="{{ . | relURL }}" alt="{{ $.Params.coverAlt }}">{{ end }}
+  {{ with .Params.coverCredit }}
+  <p class="cover-credit">Photo by <a href="{{ $.Params.coverCreditUrl }}" rel="noopener nofollow" target="_blank">{{ . }}</a> on <a href="https://unsplash.com/?utm_source={{ $.Site.Params.unsplashApp | urlquery }}&utm_medium=referral" rel="noopener nofollow" target="_blank">Unsplash</a></p>{{ end }}
+  <div class="post-body">{{ .Content }}</div>
+  <div class="card-foot post-tags">
+    {{ range .Params.tags }}<a class="tag tag-accent" href="{{ "/tags/" | relURL }}{{ . | urlize }}/">#{{ . }}</a>{{ end }}
+  </div>
+  <nav class="post-nav">
+    {{ with .NextInSection }}<a href="{{ .RelPermalink }}">← {{ .Title }}</a>{{ else }}<span></span>{{ end }}
+    {{ with .PrevInSection }}<a href="{{ .RelPermalink }}">{{ .Title }} →</a>{{ else }}<span></span>{{ end }}
+  </nav>
+</article>
+{{ end }}

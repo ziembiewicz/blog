@@ -1,0 +1,8 @@
+{{ define "main" }}
+<div class="main-head"><h1 class="glow">{{ .Title | upper }}</h1><span class="rows">{{ len .Data.Terms }} ITEMS</span></div>
+<ul class="terms">
+  {{ range .Data.Terms.ByCount }}
+  <li><a href="{{ .Page.RelPermalink }}"><span class="term-name">{{ if eq $.Data.Plural "tags" }}#{{ end }}{{ .Page.Title }}</span><span class="term-bar"><i style="width:{{ div (mul .Count 100) (index $.Data.Terms.ByCount 0).Count }}%"></i></span><b>{{ .Count }}</b></a></li>
+  {{ end }}
+</ul>
+{{ end }}

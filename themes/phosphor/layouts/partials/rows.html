@@ -1,0 +1,5 @@
+{{/* ctx: pager, site */}}
+{{ $p := .pager }}
+{{ $from := add (mul (sub $p.PageNumber 1) $p.PagerSize) 1 }}
+{{ $to := add $from (sub (len $p.Pages) 1) }}
+<span class="rows">{{ replace (replace (replace .site.Params.totalRowsLabel "{from}" (string $from)) "{to}" (string $to)) "{total}" (string $p.TotalNumberOfElements) }}</span>

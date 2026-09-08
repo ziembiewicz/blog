@@ -1,0 +1,4 @@
+name = "Phosphor"
+license = "MIT"
+description = "Retro green-phosphor terminal theme with ember accents"
+min_version = "0.120.0"

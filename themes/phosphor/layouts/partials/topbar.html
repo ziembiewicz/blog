@@ -1,0 +1,13 @@
+<header class="topbar panel" id="topbar">
+  <a class="prompt" href="{{ "/" | relURL }}">{{ .Site.Params.prompt }}</a>
+  <div class="search" id="search">
+    <span class="search-ico">⌕</span>
+    <input type="search" id="search-input" placeholder="search posts…" autocomplete="off" aria-label="Search">
+    <kbd>⌘K</kbd>
+    <ul class="search-results" id="search-results" hidden></ul>
+  </div>
+  <time class="today" id="today"></time>
+  <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme">
+    <span data-mode="dark">● dark</span><span data-mode="light">○ light</span>
+  </button>
+</header>

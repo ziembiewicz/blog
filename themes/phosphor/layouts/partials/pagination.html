@@ -1,0 +1,7 @@
+{{ if gt .TotalPages 1 }}
+<nav class="pager">
+  {{ if .HasPrev }}<a href="{{ .Prev.URL }}">← PF7</a>{{ else }}<span></span>{{ end }}
+  <span>{{ .PageNumber }} / {{ .TotalPages }}</span>
+  {{ if .HasNext }}<a href="{{ .Next.URL }}">PF8 →</a>{{ else }}<span></span>{{ end }}
+</nav>
+{{ end }}

@@ -1,0 +1,30 @@
+{{ $posts := where .Site.RegularPages "Section" "posts" }}
+<section class="panel side-box">
+  <h3 class="side-title">[ recently added ]</h3>
+  <ul class="recent">
+    {{ range first (default 4 .Site.Params.recentCount) $posts }}
+    <li><a href="{{ .RelPermalink }}"><time>{{ .Date.Format "2006-01-02" }}</time><span>{{ .Title }}</span></a></li>
+    {{ end }}
+  </ul>
+</section>
+<section class="panel side-box">
+  <h3 class="side-title">[ trending tags ]</h3>
+  <div class="tags">
+    {{ range first (default 10 .Site.Params.trendingCount) .Site.Taxonomies.tags.ByCount }}
+    <a class="tag" href="{{ .Page.RelPermalink }}">#{{ .Page.Title }} <b>{{ .Count }}</b></a>
+    {{ end }}
+  </div>
+</section>
+{{ if .Site.Params.clientDetected }}
+<section class="panel side-box" data-ip-endpoint="{{ .Site.Params.ipEndpoint }}">
+  <h3 class="side-title">[ client detected ]</h3>
+  <dl class="client">
+    <dt>IP</dt><dd id="c-ip">resolving…</dd>
+    <dt>UA</dt><dd id="c-ua"></dd>
+    <dt>LANG</dt><dd id="c-lang"></dd>
+    <dt>TZ</dt><dd id="c-tz"></dd>
+  </dl>
+</section>
+{{ end }}
+<div class="spacer"></div>
+<button class="to-top" id="to-top" type="button" aria-label="Scroll to top" hidden>↑</button>

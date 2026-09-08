@@ -1,0 +1,6 @@
+public/
+resources/_gen/
+.hugo_build.lock
+
+# local secrets (Unsplash Access Key)
+.env

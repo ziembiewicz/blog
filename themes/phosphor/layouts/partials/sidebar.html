@@ -1,0 +1,20 @@
+<div class="identity">
+  <div class="avatar-ring"><img class="avatar" src="{{ .Site.Params.avatar | relURL }}" alt="{{ .Site.Params.author }}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar avatar-ph',textContent:'photo'}))"></div>
+  <div class="author glow">{{ .Site.Params.author }}</div>
+  <p class="tagline">{{ .Site.Params.tagline }}</p>
+</div>
+<nav class="menu">
+  {{ $cur := . }}
+  {{ range .Site.Menus.main }}
+  <a class="menu-item{{ if or ($cur.IsMenuCurrent "main" .) ($cur.HasMenuCurrent "main" .) }} is-active{{ end }}" href="{{ .URL | relURL }}">
+    <span class="menu-ico">{{ .Params.icon }}</span><span>[ {{ .Name }} ]</span>
+  </a>
+  {{ end }}
+</nav>
+<div class="spacer"></div>
+<div class="social">
+  {{ with .Site.Params.social.github }}<a href="{{ . }}" title="GitHub" rel="me noopener" target="_blank">{{ partial "icons/github.svg" }}</a>{{ end }}
+  {{ with .Site.Params.social.x }}<a href="{{ . }}" title="X" rel="me noopener" target="_blank">{{ partial "icons/x.svg" }}</a>{{ end }}
+  {{ with .Site.Params.social.facebook }}<a href="{{ . }}" title="Facebook" rel="me noopener" target="_blank">{{ partial "icons/facebook.svg" }}</a>{{ end }}
+  {{ with .Site.Params.social.email }}<a href="{{ . }}" title="E-mail">{{ partial "icons/mail.svg" }}</a>{{ end }}
+</div>
