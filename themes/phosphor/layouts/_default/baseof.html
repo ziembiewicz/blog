@@ -12,6 +12,7 @@
       {{ block "main" . }}{{ end }}
       <div class="spacer"></div>
       {{ partial "footer.html" . }}
+      <button class="to-top" id="to-top" type="button" aria-label="Scroll to top" hidden>↑</button>
     </main>
     <aside class="col col-right">{{ partial "rightcol.html" . }}</aside>
   </div>

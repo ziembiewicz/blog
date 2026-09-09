@@ -14,15 +14,37 @@
     var next = html.dataset.theme === 'light' ? 'dark' : 'light';
     html.dataset.theme = next; try { localStorage.setItem('theme', next); } catch (e) {}
   });
-  // scroll-to-top: shows when search field leaves viewport
-  var top = document.getElementById('to-top'), bar = document.getElementById('search');
+  // scroll-to-top. On wide screens the article scrolls inside the main column, so the
+  // window never moves; below 1100px the column is static and the page scrolls instead.
+  var top = document.getElementById('to-top'), main = document.getElementById('main');
+  function scroller() {
+    return (main && main.scrollHeight > main.clientHeight + 1) ? main : window;
+  }
+  function scrolled() {
+    var s = scroller();
+    return s === window ? window.scrollY : s.scrollTop;
+  }
   if (top) {
-    top.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
-    if (bar && 'IntersectionObserver' in window) {
-      new IntersectionObserver(function (e) { top.hidden = e[0].isIntersecting; }, { threshold: 0 }).observe(bar);
-    } else {
-      window.addEventListener('scroll', function () { top.hidden = window.scrollY < 200; }, { passive: true });
+    // Reveal on upward scroll only: reading downwards should not be interrupted, and the
+    // arrow appears exactly when the intent to go back has been expressed. It stays put
+    // once shown - auto-hiding on a timer would make it unclickable.
+    var last = scrolled(), pending = false;
+    top.hidden = false;   // JS is present; visibility is a class from here on
+
+    function apply() {
+      pending = false;
+      var now = scrolled(), delta = now - last;
+      if (now <= 200) { top.classList.remove('is-visible'); last = now; return; }
+      if (Math.abs(delta) < 6) return;   // ignore jitter and trackpad noise
+      top.classList.toggle('is-visible', delta < 0);
+      last = now;
     }
+    function onScroll() { if (!pending) { pending = true; requestAnimationFrame(apply); } }
+
+    top.addEventListener('click', function () { scroller().scrollTo({ top: 0, behavior: 'smooth' }); });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    if (main) main.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', function () { last = scrolled(); }, { passive: true });
   }
   // client detected
   var ipEl = document.getElementById('c-ip');
