@@ -14,11 +14,14 @@
     var next = html.dataset.theme === 'light' ? 'dark' : 'light';
     html.dataset.theme = next; try { localStorage.setItem('theme', next); } catch (e) {}
   });
-  // scroll-to-top. On wide screens the article scrolls inside the main column, so the
-  // window never moves; below 1100px the column is static and the page scrolls instead.
-  var top = document.getElementById('to-top'), main = document.getElementById('main');
+  // scroll-to-top. On wide screens the window never moves: a single page scrolls inside the
+  // main column, other pages scroll the whole column block; below 1100px the page scrolls.
+  var top = document.getElementById('to-top'), main = document.getElementById('main'), cols = document.getElementById('cols');
+  function scrollable(el) {
+    return el && el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible';
+  }
   function scroller() {
-    return (main && main.scrollHeight > main.clientHeight + 1) ? main : window;
+    return scrollable(main) ? main : scrollable(cols) ? cols : window;
   }
   function scrolled() {
     var s = scroller();
@@ -44,6 +47,7 @@
     top.addEventListener('click', function () { scroller().scrollTo({ top: 0, behavior: 'smooth' }); });
     window.addEventListener('scroll', onScroll, { passive: true });
     if (main) main.addEventListener('scroll', onScroll, { passive: true });
+    if (cols) cols.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', function () { last = scrolled(); }, { passive: true });
   }
   // client detected

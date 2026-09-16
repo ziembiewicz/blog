@@ -3,10 +3,10 @@
 <head>
 {{ partial "head.html" . }}
 </head>
-<body>
+<body{{ if eq .Kind "page" }} class="is-single"{{ end }}>
 <div class="frame">
   {{ partial "topbar.html" . }}
-  <div class="cols">
+  <div class="cols" id="cols">
     <aside class="col col-left panel">{{ partial "sidebar.html" . }}</aside>
     <main class="col col-main panel" id="main">
       {{ block "main" . }}{{ end }}
