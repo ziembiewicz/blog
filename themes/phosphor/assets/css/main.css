@@ -123,7 +123,7 @@ html[data-theme="dark"] .theme-toggle [data-mode="dark"],html[data-theme="light"
 .post-body pre code{background:none;border:0;padding:0;color:var(--txt)}
 .post-body blockquote{margin:1em 0;padding:8px 18px;border-left:2px solid var(--accent);color:var(--txt);font-family:var(--sans);text-align:left}
 .post-body img{border-radius:12px;border:1px solid var(--line-soft)}
-.post-body table{border-collapse:collapse;width:100%;font-size:14px}
+.post-body table{border-collapse:collapse;width:100%;font-size:14px;display:block;max-width:100%;overflow-x:auto}
 .post-body th,.post-body td{border:1px solid var(--line-soft);padding:6px 10px;text-align:left}
 .post-body th{color:var(--accent)}
 .post-body hr{border:0;border-top:1px dashed var(--line)}
